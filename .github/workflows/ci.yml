@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test-archetype:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        java: [17]
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up JDK ${{ matrix.java }}
+        uses: actions/setup-java@v3
+        with:
+          java-version: ${{ matrix.java }}
+          distribution: "temurin"
+
+      - name: Cache Maven packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+
+      - name: Install archetype
+        run: mvn clean install
+
+      - name: Prepare clean workspace
+        run: mkdir -p /home/runner/workspace
+
+      - name: Generate test project
+        working-directory: /home/runner/workspace
+        run: |
+          mvn archetype:generate \
+            -DarchetypeGroupId=com.gridatek \
+            -DarchetypeArtifactId=spring-modular-archetype \
+            -DarchetypeVersion=1.0.0 \
+            -DgroupId=com.test \
+            -DartifactId=test-project \
+            -Dversion=1.0.0-SNAPSHOT \
+            -DinteractiveMode=false
+
+      - name: Test generated project
+        working-directory: /home/runner/workspace/test-project
+        run: mvn clean compile test package

@@ -1,0 +1,61 @@
+# Spring Boot Application Configuration
+server:
+  port: 8080
+  servlet:
+    context-path: /
+
+spring:
+  application:
+    n: ${artifactId}
+  profiles:
+    active: development
+
+# Logging configuration
+logging:
+  level:
+    root: INFO
+    ${package}: DEBUG
+    org.springframework.web: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# Management endpoints (Actuator)
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when-authorized
+
+# Application info
+info:
+  app:
+    n: ${artifactId}
+    version: ${version}
+    description: "Multi-module workspace application"
+
+---
+# Development profile
+spring:
+  config:
+    activate:
+      on-profile: development
+
+logging:
+  level:
+    ${package}: DEBUG
+
+---
+# Production profile
+spring:
+  config:
+    activate:
+      on-profile: production
+
+logging:
+  level:
+    root: WARN
+    ${package}: INFO

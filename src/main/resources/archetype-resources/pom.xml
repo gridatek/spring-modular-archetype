@@ -19,7 +19,7 @@
         <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <junit.version>5.10.0</junit.version>
-        <mockito.version>5.5.0</mockito.version>
+        <mockito.version>5.14.2</mockito.version>
         <slf4j.version>2.0.7</slf4j.version>
         <logback.version>1.4.11</logback.version>
         <maven.surefire.version>3.1.2</maven.surefire.version>
@@ -73,6 +73,12 @@
             <dependency>
                 <groupId>org.mockito</groupId>
                 <artifactId>mockito-core</artifactId>
+                <version>${mockito.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-junit-jupiter</artifactId>
                 <version>${mockito.version}</version>
                 <scope>test</scope>
             </dependency>

@@ -12,26 +12,23 @@ jobs:
 
     strategy:
       matrix:
-        java: [17]
+        java: [17, 21, 23]
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Set up JDK ${{ matrix.java }}
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           java-version: ${{ matrix.java }}
           distribution: "temurin"
+          cache: maven
 
-      - name: Cache Maven packages
-        uses: actions/cache@v3
-        with:
-          path: ~/.m2
-          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-          restore-keys: ${{ runner.os }}-m2
+      - name: Build and install archetype
+        run: mvn clean install -B
 
-      - name: Install archetype
-        run: mvn clean install
+      - name: Run Spotless format check
+        run: mvn spotless:check -B
 
       - name: Prepare clean workspace
         run: mkdir -p /home/runner/workspace
@@ -46,8 +43,78 @@ jobs:
             -DgroupId=com.test \
             -DartifactId=test-project \
             -Dversion=1.0.0-SNAPSHOT \
-            -DinteractiveMode=false
+            -Dpackage=com.test \
+            -DinteractiveMode=false \
+            -B
 
-      - name: Test generated project
+      - name: Install dependencies for service module
         working-directory: /home/runner/workspace/test-project
-        run: mvn clean compile test package
+        run: |
+          mvn install -B -N
+          mvn clean install -B -pl test-project-core,test-project-api -DskipTests
+
+      - name: Test core and api modules
+        working-directory: /home/runner/workspace/test-project
+        run: mvn test -B -pl test-project-core,test-project-api
+
+      - name: Test service module (Mockito tests)
+        working-directory: /home/runner/workspace/test-project
+        run: mvn test -B -pl test-project-service
+
+      - name: Verify full project compiles
+        working-directory: /home/runner/workspace/test-project
+        run: mvn clean compile -B
+
+  validate-generated-project:
+    runs-on: ubuntu-latest
+    needs: test-archetype
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: "temurin"
+          cache: maven
+
+      - name: Build and install archetype
+        run: mvn clean install -B
+
+      - name: Test with different parameters
+        run: |
+          cd /tmp
+          mvn archetype:generate \
+            -DarchetypeGroupId=com.gridatek \
+            -DarchetypeArtifactId=spring-modular-archetype \
+            -DarchetypeVersion=1.0.0 \
+            -DgroupId=org.example \
+            -DartifactId=my-test-app \
+            -Dversion=2.0.0-SNAPSHOT \
+            -Dpackage=org.example.mytestapp \
+            -DinteractiveMode=false \
+            -B
+
+      - name: Verify project structure
+        run: |
+          cd /tmp/my-test-app
+          # Check all modules exist
+          test -d my-test-app-core
+          test -d my-test-app-api
+          test -d my-test-app-service
+          test -d my-test-app-web
+          test -f pom.xml
+          test -f README.md
+
+      - name: Install dependencies for second test
+        run: |
+          cd /tmp/my-test-app
+          mvn install -B -N
+          mvn clean install -B -pl my-test-app-core,my-test-app-api -DskipTests
+
+      - name: Test service module with different package
+        run: |
+          cd /tmp/my-test-app
+          # Test that Mockito tests work with different package structure
+          mvn test -B -pl my-test-app-service

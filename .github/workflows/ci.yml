@@ -47,13 +47,19 @@ jobs:
             -DinteractiveMode=false \
             -B
 
+      - name: Install dependencies for service module
+        working-directory: /home/runner/workspace/test-project
+        run: |
+          mvn install -B -N
+          mvn clean install -B -pl test-project-core,test-project-api -DskipTests
+
       - name: Test core and api modules
         working-directory: /home/runner/workspace/test-project
-        run: mvn clean test -B -pl test-project-core,test-project-api
+        run: mvn test -B -pl test-project-core,test-project-api
 
       - name: Test service module (Mockito tests)
         working-directory: /home/runner/workspace/test-project
-        run: mvn clean test -B -pl test-project-service
+        run: mvn test -B -pl test-project-service
 
       - name: Verify full project compiles
         working-directory: /home/runner/workspace/test-project
@@ -101,8 +107,14 @@ jobs:
           test -f pom.xml
           test -f README.md
 
+      - name: Install dependencies for second test
+        run: |
+          cd /tmp/my-test-app
+          mvn install -B -N
+          mvn clean install -B -pl my-test-app-core,my-test-app-api -DskipTests
+
       - name: Test service module with different package
         run: |
           cd /tmp/my-test-app
           # Test that Mockito tests work with different package structure
-          mvn clean test -B -pl my-test-app-service
+          mvn test -B -pl my-test-app-service
